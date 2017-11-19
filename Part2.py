@@ -286,10 +286,7 @@ sentimentAnalysis = simpleSentimentAnalysis(fileDir, emissionParameters)
 transitionParameters = computeTransitions(fileDir,tagCount)
 save_obj(transitionParameters,fileDir,"transitionParameters")
 """
-computeSentences("EN") 
-computeSentences("CN")   
-computeSentences("FR")   
-computeSentences("SG")   
+ 
   
     
         
