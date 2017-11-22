@@ -150,7 +150,7 @@ def computeEmissions(fileDir, tagCount):
             print("Corrupted data detected: {0}".format(i))
             
     #Compute the observation parameters
-    emitParams = buildParameters(emissionParameters,tagCount)#Builds up the parameters
+    emitParams = buildEmissionParameters(emissionParameters,tagCount)#Builds up the parameters
     return emitParams
     
 #TODO: decide if you want to do {count,paramter} structure   
@@ -161,7 +161,7 @@ def nestedDictProcess(dictionary,key,subKey):
     else:
         dictionary[key]["count"][subKey] = dictionary[key]["count"].get(subKey,0)+1 #Increment the count
 
-def buildParameters(dictionary, tagCount):
+def buildEmissionParameters(dictionary, tagCount):
     for key, value in dictionary.items():   
         parameters = {}
         for subKey,subvalue in value["count"].items():
@@ -199,39 +199,7 @@ def load_obj(fileDir, fileName):
     with open('{0}\\variables\{1}.pkl'.format(fileDir,fileName), 'rb') as f:
         return pickle.load(f)
     
-def computeTransitions(fileDir,tagCount):
-    with open('{0}\modifiedTrain.txt'.format(fileDir), 'r',encoding='utf-8') as modTrainSet:
-        trainSetString = modTrainSet.read()
-    transitionParameters = {}
-    y_prev = "START" 
-    y_next = ""
-    #Compute the emission counts
-    #TODO: deal with the transition parameters
-    #TODO: deal with anomalous data
-    trainSetLines = trainSetString.splitlines(True)
-    for i in trainSetLines:
-        
-        data = i.rsplit(" ",1)
-        if(len(data)==2):
-            word = data[0]
-            tag = data[1].rstrip('\n')
-            if(word == '' or tag not in sentimentSets):
-                print("Corrupted data detected: {0}".format(i))
-            else:
-                y_next = tag
-                nestedDictProcess(transitionParameters,y_prev,y_next)
-                y_prev = tag              
-                
-        elif(i == '\n'):
-            #print("Just a new line")
-            y_next = "STOP"
-            nestedDictProcess(transitionParameters,y_prev,y_next)
-            y_prev = "START"
-        else:
-            print("Corrupted data detected: {0}".format(i))
-        
-    transParams = buildParameters(transitionParameters,tagCount)#Builds up the parameters
-    return transParams
+
 
 def detectAnomalies(fileDir):
     with open('{0}\modifiedTrain.txt'.format(fileDir), 'r',encoding='utf-8') as modTrainSet:
@@ -254,26 +222,9 @@ def detectAnomalies(fileDir):
         else:
             print("Corrupted data detected: {0}".format(i))
             indices= indices +"{0} {1}\n".format(i,index)
-    indices= "Sentences {0}".format(sentences)+indices
-    with open('{0}\\variables\errors.txt'.format(fileDir), 'w',encoding='utf-8') as outputFile:
-        outputFile.write(indices)
+
     
-#TODO: Compute the sentences of the test-Set
-def computeSentences(fileDir):
-    with open('{0}\modifiedTest.txt'.format(fileDir), 'r',encoding='utf-8') as modTestSet:
-        testSetString = modTestSet.read()
-    sentences= []
-    sentence = ""
-    testSetLines = testSetString.splitlines()
-    for i in testSetLines:
-        if (i != ''):
-            #Valid ; choose "||" as delimiter
-            sentence = sentence +i+"||"
-        else:
-            #End of sentence reached
-            sentences.append(sentence.rstrip("||"))
-            sentence = ""
-    save_obj(sentences,fileDir,"sentences")
+
 
     
 """
