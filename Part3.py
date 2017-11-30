@@ -6,8 +6,12 @@ Created on Sun Nov 19 19:25:59 2017
 Reference for emission and transition parameters
 Emission = emissionParameters[word]["parameter"][tag]
 transition = transitionParameters[prev_tag]["parameter"][current_tag]
+
 """
 from collections import deque
+import sys
+import math 
+from math import inf
 
 sentimentSets = ["START","STOP","O","B-positive","I-positive","B-neutral","I-neutral","B-negative","I-negative"]
 
@@ -30,16 +34,16 @@ def computeSentences(fileDir):
     with open('{0}\modifiedTest.txt'.format(fileDir), 'r',encoding='utf-8') as modTestSet:
         testSetString = modTestSet.read()
     sentences= []
-    sentence = ""
+    sentence = []
     testSetLines = testSetString.splitlines()
     for i in testSetLines:
         if (i != ''):
             #Valid ; choose "||" as delimiter
-            sentence = sentence +i+"||"
+            sentence.append(i)
         else:
             #End of sentence reached
-            sentences.append(sentence.rstrip("||"))
-            sentence = ""
+            sentences.append(sentence)
+            sentence = []
     save_obj(sentences,fileDir,"sentences")
 
 def computeTransitions(fileDir,tagCount):
@@ -91,16 +95,11 @@ def buildTransitionParameters(dictionary, tagCount):
         dictionary[y_prev]["parameters"] = parameters
     return dictionary
 
-def processSentences(sentences,transitionParameters, emissionParameters):
-    for sentence in sentences:
-        sentence_array = sentence.split("||")
-        print(sentence_array)
 
 def aUV(transitionParameters,prev_tag,tag):
     dic = transitionParameters[prev_tag]["parameters"]
     return dic.get(tag,0)
      
-
 def bVxi(emissionParameters,observation,tag):
     dic= emissionParameters[observation]["parameters"]
     return dic.get(tag,0)
@@ -108,8 +107,7 @@ def bVxi(emissionParameters,observation,tag):
 def decodeAllSentences(sentences, fileDir, tP, eP):
     fileString = ""
     for sentence in sentences:
-        sentence_array = sentence.split("||")
-        fileString = fileString+viterbiAlgorithm(sentence_array,tP,eP)+"\n"
+        fileString = fileString+viterbiAlgorithm(sentence,tP,eP)+"\n"
     with open('{0}\\dev.p3.out'.format(fileDir), 'w',encoding='utf-8') as outputFile:
         outputFile.write(fileString)
         
@@ -123,50 +121,87 @@ def viterbiAlgorithm(sentence_array, transitionParameters, emissionParameters):
     markovTable = []
     prev_tag = "START"
     
-    print("Commencing forward computation") 
+    trans =0
+    emit =0
+    #print("Commencing forward computation") 
     for i in range(0,len(sentence_array)):
         tagSets = {"O":0,"B-positive":0,"I-positive":0,"B-neutral":0,"I-neutral":0,"B-negative":0,"I-negative":0}
         markovTable.append(tagSets)
+        observation = sentence_array[i]
         if i == 0:
-            observation = sentence_array[i]
             print("Base case")
             for tag in markovTable[i]:
-                markovTable[i][tag] = aUV(tP,prev_tag,tag)*bVxi(eP,observation,tag)  
-            print(markovTable)
+                trans = aUV(tP,prev_tag,tag)
+                emit = bVxi(eP,observation,tag)
+                if(trans == 0 or emit ==0):
+                    markovTable[i][tag] = -inf
+                else:
+                    markovTable[i][tag] = math.log10(emit*trans)
+            #print(markovTable)
             
         else:
-            observation = sentence_array[i]
-            print("entering recursive case")
+            #print("entering recursive case")
             for tag in markovTable[i]:
                 values = []     
-                print(markovTable[i-1])
+                #print(markovTable[i-1])
                 for prev_tag in markovTable[i-1]:
-                    #print(markovTable[i-1])
-                    tempVal = markovTable[i-1][prev_tag]*aUV(tP,prev_tag,tag)*bVxi(eP,observation,tag)
+                    prev_node_val = markovTable[i-1][prev_tag]
+                    trans = aUV(tP,prev_tag,tag)
+                    emit = bVxi(eP,observation,tag)
+                    
+                    #Check the values 
+                    if(prev_node_val is -inf or trans == 0 or emit ==0):
+                        tempVal = -inf
+                    else:
+                        #Need to reassign a new value based on the log space laws
+                        #The value in the nodes are already in log base 10 
+                        tempVal = prev_node_val+math.log10(trans*emit)
                     values.append(tempVal)
+                #Set to None if no values available 
+            
                 markovTable[i][tag] = max(values)
+                    
 
                 
-    print("terminal case")
-    #You still have to iterate through every single dictionary 
+    #print("terminal case")
     lastTag = "STOP"
-    values = []            
-    for tag in markovTable[len(markovTable)-1]:
-        tempVal = markovTable[len(markovTable)-1][tag]*aUV(tP,tag,lastTag)
+    values = [] 
+    observation = sentence_array[-1]           
+    for prev_tag in markovTable[-1]:
+        prev_node_val = markovTable[-1][prev_tag]
+        trans = aUV(tP,prev_tag,lastTag)
+        #emit = bVxi(eP,observation,lastTag) STOP emits NOTHING
+        #print("tag: {} trans: {}, prev: {}".format(prev_tag,trans, prev_node_val ))
+        
+        if(prev_node_val is -inf or trans == 0):
+            tempVal = -inf
+        else:
+            #Need to reassign a new value based on the log space laws
+            #The value in the nodes are already in log base 10 
+            tempVal = prev_node_val+math.log10(trans)
         values.append(tempVal)
     terminalValue = max(values)
     
+    #Backtracking
     print("Commencing back trekking with terminal value: {}".format(terminalValue))
     from collections import deque
-    
     sequenceList = deque()
-    keyValue = terminalValue
     latestTag = "STOP"
     for i in range(len(markovTable)-1, -1, -1):   
-        keyValPairs = {}
+        observation = sentence_array[i]
+        if(observation == "London"):
+            print("Before: {}".format(markovTable[i]))
+
         for prev_tag,pi in markovTable[i].items():
-            keyValPairs[prev_tag] = markovTable[i][prev_tag]*aUV(tP,prev_tag,latestTag)
-        parent = max(keyValPairs, key=keyValPairs.get)
+            transition = aUV(tP,prev_tag,latestTag)
+            if (transition ==0 or pi is -inf):
+                markovTable[i][prev_tag] = -inf 
+            else:
+                markovTable[i][prev_tag] = pi+math.log10(transition)
+        #validEntries = {prev_tag:pi for (prev_tag,pi) in markovTable[i].items() if pi is not None} 
+        if(observation == "London"):
+            print("After: {}".format(markovTable[i]))
+        parent = max(markovTable[i], key=markovTable[i].get)
         #print("Parent found: {}".format(parent))
         sequenceList.appendleft(parent)
         latestTag = parent
@@ -190,13 +225,15 @@ trainingSets = ["EN","CN","FR","SG"]
 for i in trainingSets:
     fileDir = i
     tagCount = load_obj(fileDir,"tagCount")
-    transitionParameters = computeTransitions(fileDir,tagCount)
-    save_obj(transitionParameters,fileDir,"transitionParameters")
+    #transitionParameters = computeTransitions(fileDir,tagCount)
+    #save_obj(transitionParameters,fileDir,"transitionParameters")
+    computeSentences(fileDir)
 """
-fileDir = "EN"
-tagCount = load_obj(fileDir,"tagCount")          
+
+fileDir = "FR"
 transitionParameters = load_obj(fileDir, "transitionParameters")   
 emissionParameters = load_obj(fileDir,"emissionParameters")     
 sentences = load_obj(fileDir,"sentences")
 decodeAllSentences(sentences,fileDir,transitionParameters,emissionParameters)
+
     
