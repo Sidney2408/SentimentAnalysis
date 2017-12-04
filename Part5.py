@@ -1,12 +1,20 @@
 # -*- coding: utf-8 -*-
 """
-Created on Sun Nov 19 19:25:59 2017
+Created on Mon Dec  4 18:01:45 2017
 
 @author: Sidney
-Reference for emission and transition parameters
-Emission = emissionParameters[word]["parameter"][tag]
-transition = transitionParameters[prev_tag]["parameter"][current_tag]
+"""
 
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Nov 10 16:42:35 2017
+
+@author: Sidney
+
+Todo:
+    Modularise functionality
+    Modify the training set
+    Write modified training set to an external function
 """
 from collections import deque
 import sys
@@ -15,36 +23,142 @@ from math import inf
 
 sentimentSets = ["START","STOP","O","B-positive","I-positive","B-neutral","I-neutral","B-negative","I-negative"]
 
-import pickle 
-def save_obj(obj, fileDir, fileName ):
-    with open('{0}\\variables\{1}.pkl'.format(fileDir,fileName),'wb') as f:
-        pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
-        
-def load_obj(fileDir, fileName):
-    with open('{0}\\variables\{1}.pkl'.format(fileDir,fileName), 'rb') as f:
-        return pickle.load(f)
-
-fileDir = "SG"
-sentences = load_obj(fileDir,"sentences")
-emissionParameters = load_obj(fileDir,"emissionParameters")
-transitionParameters = load_obj(fileDir,"transitionParameters")
-
-#TODO: Compute the sentences of the test-Set
-def computeSentences(fileDir):
-    with open('{0}\modifiedTest.txt'.format(fileDir), 'r',encoding='utf-8') as modTestSet:
-        testSetString = modTestSet.read()
-    sentences= []
-    sentence = []
-    testSetLines = testSetString.splitlines()
+#Part 2.1
+#tagCount is a dictionary with the tag as the key and the value being the number of occurences of the tags
+def preprocess(fileDir,kVal):
+    #Read the designated files first
+    outliers = {} #TODO: Hunt for outliers and deal with them
+    tagCount ={}
+    trainWords={}
+    modtrainWords = {}
+    
+    with open('{0}\\train.txt'.format(fileDir), 'r',encoding='utf-8') as trainSet:
+        trainSetString = trainSet.read()
+    
+    print("Processing tagcounts and train word counts")
+    #Parse through the training set
+    trainSetLines = trainSetString.splitlines(True)
+    #dictProcess(tagCount,"START")
+    for i in trainSetLines:
+        data = i.rsplit(" ",1)
+        if(len(data)==2):
+            word = data[0]
+            tag = data[1].rstrip('\n')
+            if(word == '' or tag not in sentimentSets):
+                print("Corrupted data detected: {0}").format(i)
+            else:
+                dictProcess(tagCount, tag)#A helper function to tally up the counts 
+                dictProcess(trainWords,word)
+        elif(i == '\n'):
+            dictProcess(tagCount,"START")
+            #print("Just a new line")
+            dictProcess(tagCount,"STOP")
+        else:
+            print("Corrupted data detected: {0}".format(i))
+    
+    print("Replacing words in the training set that appear less than k times with #UNK#") 
+    #Replace the words in the training set that appear less than k times with #UNK#
+    wordDict = {k:v for (k,v) in trainWords.items() if v < kVal} 
+    modifiedString = ""
+    for i in trainSetLines:
+        data = i.rsplit(" ",1)
+        #print(data)
+        #What about cases where there is a word without a sentiment?
+        #TODO: account for cases where there is corrupted data.
+        if(len(data)==2):
+            word = data[0]
+            tag = data[1].rstrip('\n')
+            if(word in wordDict):
+                words = "#UNK# "+tag+"\n"
+                modifiedString = modifiedString+ words  
+            elif(word not in wordDict):
+                #print("Word not in the dictionary just add as usual: {0}".format(i))
+                modifiedString = modifiedString+i
+            else:
+                print("I have no idea what this is: {0}").format(i)
+                modifiedString = modifiedString+i
+        elif(i == '\n'):
+            #print("Just a new line")
+            modifiedString = modifiedString+i
+        else:
+            print("Corrupted data detected: {0}".format(i))
+            modifiedString = modifiedString+i
+    
+    #Building modtrainWords:
+    #TODO: find a way to streamline this computation
+    for i in modifiedString.splitlines(True):
+        data = i.rsplit(" ",1)
+        if(len(data)==2):
+            word = data[0]
+            tag = data[1].rstrip('\n')
+            if(word == '' or tag not in sentimentSets):
+                print("Corrupted data detected: {0}").format(i)
+            else:
+                dictProcess(modtrainWords,word)
+        elif(i == '\n'):
+            #print("Just a new line")
+            pass
+        else:
+            print("Corrupted data detected: {0}".format(i))        
+            
+    #Reading the words inside the testSet that do not appear in the training set
+    testWords = {}
+    with open('{0}\\test.txt'.format(fileDir), 'r',encoding='utf-8') as testSet:
+        testSetString = testSet.read()
+    testSetLines = testSetString.splitlines()#This converts all the '\n' to ''
+    for i in testSetLines:
+        if(i!=''):
+            dictProcess(testWords,i)
+    
+    wordsNotInTrainingSet = set(testWords) - set(modtrainWords)
+    
+    modifiedTestString = ""
+    
     for i in testSetLines:
         if (i != ''):
-            #Valid ; choose "||" as delimiter
-            sentence.append(i)
+            if i in wordsNotInTrainingSet:
+                modifiedTestString = modifiedTestString+"#UNK#\n"
+            else:
+                modifiedTestString = modifiedTestString+ i+'\n'
         else:
-            #End of sentence reached
-            sentences.append(sentence)
-            sentence = []
-    save_obj(sentences,fileDir,"sentences")
+            modifiedTestString = modifiedTestString+ '\n'
+    
+    with open('{0}\modifiedTrain.txt'.format(fileDir), 'w',encoding='utf-8') as outputFile:
+        outputFile.write(modifiedString)
+        
+    with open('{0}\modifiedPart5.txt'.format(fileDir), 'w',encoding='utf-8') as outputTestFile:
+        outputTestFile.write(modifiedTestString)        
+    return tagCount
+
+def dictProcess(dictionary, key):
+    dictionary[key] = dictionary.get(key,0)+1 
+
+
+#Returns a dictionary with the emission parameters  
+def computeEmissions(fileDir, tagCount):
+    with open('{0}\modifiedTrain.txt'.format(fileDir), 'r',encoding='utf-8') as modTrainSet:
+        trainSetString = modTrainSet.read()
+    emissionParameters = {}    
+    #Compute the emission counts 
+    trainSetLines = trainSetString.splitlines(True)
+    for i in trainSetLines:
+        data = i.rsplit(" ",1)
+        if(len(data)==2):
+            word = data[0]
+            tag = data[1].rstrip('\n')
+            if(word == '' or tag not in sentimentSets):
+                print("Corrupted data detected: {0}".format(i))
+            else:
+                nestedDictProcess(emissionParameters,word,tag)#Builds up the dictionaries
+        elif(i == '\n'):
+            #print("Just a new line")
+            pass
+        else:
+            print("Corrupted data detected: {0}".format(i))
+            
+    #Compute the observation parameters
+    emitParams = buildEmissionParameters(emissionParameters,tagCount)#Builds up the parameters
+    return emitParams
 
 def computeTransitions(fileDir,tagCount):
     with open('{0}\modifiedTrain.txt'.format(fileDir), 'r',encoding='utf-8') as modTrainSet:
@@ -79,7 +193,8 @@ def computeTransitions(fileDir,tagCount):
         
     transParams = buildTransitionParameters(transitionParameters,tagCount)#Builds up the parameters
     return transParams
-
+    
+#TODO: decide if you want to do {count,paramter} structure   
 def nestedDictProcess(dictionary,key,subKey):
     if key not in dictionary:
         dictionary[key]={}
@@ -87,6 +202,31 @@ def nestedDictProcess(dictionary,key,subKey):
     else:
         dictionary[key]["count"][subKey] = dictionary[key]["count"].get(subKey,0)+1 #Increment the count
 
+def buildEmissionParameters(dictionary, tagCount):
+    for key, value in dictionary.items():   
+        parameters = {}
+        for subKey,subvalue in value["count"].items():
+            parameters[subKey] = subvalue/tagCount[subKey]
+        dictionary[key]["parameters"] = parameters
+    return dictionary
+
+#TODO: Compute the sentences of the test-Set
+def computeSentences(fileDir):
+    with open('{0}\modifiedPart5.txt'.format(fileDir), 'r',encoding='utf-8') as modTestSet:
+        testSetString = modTestSet.read()
+    sentences= []
+    sentence = []
+    testSetLines = testSetString.splitlines()
+    for i in testSetLines:
+        if (i != ''):
+            #Valid ; choose "||" as delimiter
+            sentence.append(i)
+        else:
+            #End of sentence reached
+            sentences.append(sentence)
+            sentence = []
+    return sentences
+    
 def buildTransitionParameters(dictionary, tagCount):
     for y_prev, value in dictionary.items():   
         parameters = {}
@@ -108,7 +248,7 @@ def decodeAllSentences(sentences, fileDir, tP, eP):
     fileString = ""
     for sentence in sentences:
         fileString = fileString+viterbiAlgorithm(sentence,tP,eP)+"\n"
-    with open('{0}\\dev.p3.out'.format(fileDir), 'w',encoding='utf-8') as outputFile:
+    with open('{0}\\dev.p5.out'.format(fileDir), 'w',encoding='utf-8') as outputFile:
         outputFile.write(fileString)
         
         
@@ -214,26 +354,16 @@ def viterbiAlgorithm(sentence_array, transitionParameters, emissionParameters):
         obs_statePair = obs_statePair+"{0} {1}\n".format(word, tag)    
     return obs_statePair
 
-            
-            
-                
 
-
-trainingSets = ["EN","CN","FR","SG"]
-
-"""
-for i in trainingSets:
-    fileDir = i
-    tagCount = load_obj(fileDir,"tagCount")
-    #transitionParameters = computeTransitions(fileDir,tagCount)
-    #save_obj(transitionParameters,fileDir,"transitionParameters")
-    computeSentences(fileDir)
-"""
-
-fileDir = "FR"
-transitionParameters = load_obj(fileDir, "transitionParameters")   
-emissionParameters = load_obj(fileDir,"emissionParameters")     
-sentences = load_obj(fileDir,"sentences")
+fileDir = "EN"
+tagCount = preprocess(fileDir,3)
+emissionParameters = computeEmissions(fileDir,tagCount)
+transitionParameters = computeTransitions(fileDir,tagCount)
+sentences = computeSentences(fileDir)
 decodeAllSentences(sentences,fileDir,transitionParameters,emissionParameters)
 
+ 
+  
+    
+        
     

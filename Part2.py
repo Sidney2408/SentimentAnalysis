@@ -227,7 +227,7 @@ def detectAnomalies(fileDir):
 
 
     
-"""
+
 fileDir = "SG"
 tagCount = preprocess(fileDir,3)
 save_obj(tagCount, fileDir, "tagCount")
@@ -236,7 +236,7 @@ save_obj(emissionParameters, fileDir, "emissionParameters")
 sentimentAnalysis = simpleSentimentAnalysis(fileDir, emissionParameters)
 transitionParameters = computeTransitions(fileDir,tagCount)
 save_obj(transitionParameters,fileDir,"transitionParameters")
-"""
+
  
   
     
