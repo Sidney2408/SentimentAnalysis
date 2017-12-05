@@ -29,33 +29,129 @@ Modifying tagCount:
 		Sentiment  recall: 0.3230
 		Sentiment  F: 0.3326
 
-
-	ITER = 1, only trans recalc
-		#Entity in gold data: 226
-		#Entity in prediction: 192
-
-		#Correct Entity : 116
-		Entity  precision: 0.6042
-		Entity  recall: 0.5133
-		Entity  F: 0.5550
-
-		#Correct Sentiment : 69
-		Sentiment  precision: 0.3594
-		Sentiment  recall: 0.3053
-		Sentiment  F: 0.3301
-	
-	ITER = 10, only trans recalc
-		#Entity in gold data: 226
-		#Entity in prediction: 217
-
-		#Correct Entity : 129
-		Entity  precision: 0.5945
-		Entity  recall: 0.5708
-		Entity  F: 0.5824
-
-		#Correct Sentiment : 76
-		Sentiment  precision: 0.3502
-		Sentiment  recall: 0.3363
-		Sentiment  F: 0.3431
+	ITER = 3, trans and emi
 		
-TODO modify trans without modifying tagCount (via some mysterious weight)
+		#Entity in gold data: 226
+		#Entity in prediction: 223
+
+		#Correct Entity : 132
+		Entity  precision: 0.5919
+		Entity  recall: 0.5841
+		Entity  F: 0.5880
+
+		#Correct Sentiment : 79
+		Sentiment  precision: 0.3543
+		Sentiment  recall: 0.3496
+		Sentiment  F: 0.3519
+	
+	ITER = 10, trans and emi		
+		#Entity in gold data: 226
+		#Entity in prediction: 227
+
+		#Correct Entity : 133
+		Entity  precision: 0.5859
+		Entity  recall: 0.5885
+		Entity  F: 0.5872
+
+		#Correct Sentiment : 80
+		Sentiment  precision: 0.3524
+		Sentiment  recall: 0.3540
+		Sentiment  F: 0.3532
+
+		
+			
+FR:
+Part4
+	#Entity in gold data: 223
+	#Entity in prediction: 173
+
+	#Correct Entity : 113
+	Entity  precision: 0.6532
+	Entity  recall: 0.5067
+	Entity  F: 0.5707
+
+	#Correct Sentiment : 73
+	Sentiment  precision: 0.4220
+	Sentiment  recall: 0.3274
+	Sentiment  F: 0.3687
+
+
+Part 5
+	ITER = 3, both trans and emi
+		#Entity in gold data: 223
+		#Entity in prediction: 225
+
+		#Correct Entity : 147
+		Entity  precision: 0.6533
+		Entity  recall: 0.6592
+		Entity  F: 0.6563
+
+		#Correct Sentiment : 91
+		Sentiment  precision: 0.4044
+		Sentiment  recall: 0.4081
+		Sentiment  F: 0.4062
+	
+	ITER = 10, both trans and emi
+		#Entity in gold data: 223
+		#Entity in prediction: 225
+
+		#Correct Entity : 147
+		Entity  precision: 0.6533
+		Entity  recall: 0.6592
+		Entity  F: 0.6563
+
+		#Correct Sentiment : 91
+		Sentiment  precision: 0.4044
+		Sentiment  recall: 0.4081
+		Sentiment  F: 0.4062
+	
+	
+Part 5:
+	In order to improve the sentiment analysis results, we attempted to train and use perceptrons in conjunction with the Viterbi algorithm. The improved transmission and emission parameters will then be used in the maxMarginal method, in order to generate a predictive output on the test data.
+	
+	We adapted a perceptron training model from a reference slide from Cambridge University's department of Computer Science (link below) to help train the perceptrons.
+	
+	From the reference, the algorithm for training looks like this.
+	
+	<insert algo pic from slide>
+	
+	In words:
+		Assume n tagged sentences for training
+		Initialise weights to zero
+		Do L passes over the training data
+		For each tagged sentence in the training data, find the highest scoring tag	sequence using the current weights
+		If the highest scoring tag sequence matches the gold, move to next sentence
+		If not, for each feature in the gold but not in the output, add 1 to its weight; for each feature in the output but not in the gold, take 1 from its weight
+		Return weights
+
+	We adapted a few things from this reference slide, as we are making use of the existing code. Below are some of the modifications.
+	
+	Firstly, our gold standard was the tagged training data, and the respective training data is the untagged version of the training data. It is with these data that we iterate through multiple times in order to train the perceptrons
+	The perceptrons and their weights are also implemented in another way. We choose to modify the tagCount for the full algorithm defined in parts 1 to 4, because given the implementation of the transmission and emission parameters calculation in step 2-3, it is easier to recalculate with a new tagCount instead of transmission and emission weight. We will elaborate further below.
+	
+	At the end of the perceptron training, we have a final transmission and emission parameter, which we use in the maxMarginal method on the dev.in data set, in order to generate the dev.p5.out data.
+	
+	Our modified algorithm looks like this:
+		Generate tagCount (counts the number of tags for all possible states, eg I-negative, I-positive, B-positive, etc)
+		Assume n tagged sentences for training
+		Do 10 passes over the training data
+			Initialise feature counters for each feature to 0
+			For each tagged sentence in the training data, use the existing viterbi algorithm in part 3 to generate a tagged sentence
+				If the generated sequence matches the gold, move to next sentence
+				If not, for each feature in the gold but not in the output, add 1 to the feature counter; for each feature in the output but not in the gold, take 1 from its feature counter.
+				
+				For all non-zero feature-counters, we deduct from tagCount their respective count.
+				We then regenerate the transmission and emission parameters from the new tagCounts, to apply them to the next viterbi algorithm for the next sentence.
+	
+	A problem with the implementation is that we modify the tagCount directly, instead of choosing and modifying weights to the perceptron. Why this methods still works is because it has the effect of increasing the probability of each tag during the calculation of the emission and transmission parameters, akin to how weights will increase them as well. However, we are also aware that modifying the tagCount might create a non-equal change in probability, which might result in the total probability of cases to be not equals to 1 for some states. In practice, this is not significant due to the large amount of states present in the training dataset.
+	
+	From the results (shown above), we can see a marked improvement in both precision and recall for both Identity and Sentiment predictions. As the total number of iteration increases, we can see a gradual increase in precision and recall, which appears to converge. From the data, we see an average of 5% improvement for Entity prediction, and 4% improvement in Sentiment prediction, for both the EN and FR version.
+	
+	Future works can be to:
+		I) change the implementation of the perceptron to affect the transmission and emission parameters directly, by applying weights, instead of affecting them through the tagCount. This will minimise mathematical imprecision.
+		II) Consider and reduce the cases of perceptron overfitting, by averaging the weights out according to the "voted" perceptron theory.
+	
+	
+	
+	Reference:
+	https://www.cl.cam.ac.uk/teaching/1213/L101/clark_lectures/lect5.pdf
