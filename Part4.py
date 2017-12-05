@@ -120,7 +120,7 @@ def load_obj(fileDir, fileName):
     with open('{0}\\variables\{1}.pkl'.format(fileDir,fileName), 'rb') as f:
         return pickle.load(f)
 
-fileDir = "EN" #Specify the training sets to be used
+fileDir = "FR" #Specify the training sets to be used
 transitionParameters = load_obj(fileDir, "transitionParameters")
 #To access the transmission parameters, use transition[prev_tag][next_tag] 
 emissionParameters = load_obj(fileDir,"emissionParameters")

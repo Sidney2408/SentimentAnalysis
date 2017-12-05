@@ -24,7 +24,7 @@ def load_obj(fileDir, fileName):
     with open('{0}\\variables\{1}.pkl'.format(fileDir,fileName), 'rb') as f:
         return pickle.load(f)
 
-fileDir = "EN"
+fileDir = "SG"
 sentences = load_obj(fileDir,"sentences")
 emissionParameters = load_obj(fileDir,"emissionParameters")
 transitionParameters = load_obj(fileDir,"transitionParameters")
