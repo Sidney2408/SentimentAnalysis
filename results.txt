@@ -1,0 +1,61 @@
+Results
+
+part4
+	#Entity in gold data: 226
+	#Entity in prediction: 175
+
+	#Correct Entity : 108
+	Entity  precision: 0.6171
+	Entity  recall: 0.4779
+	Entity  F: 0.5387
+
+	#Correct Sentiment : 69
+	Sentiment  precision: 0.3943
+	Sentiment  recall: 0.3053
+	Sentiment  F: 0.3441
+
+Modifying tagCount:
+	ITER = 1, both trans and emi
+		#Entity in gold data: 226
+		#Entity in prediction: 213
+
+		#Correct Entity : 127
+		Entity  precision: 0.5962
+		Entity  recall: 0.5619
+		Entity  F: 0.5786
+
+		#Correct Sentiment : 73
+		Sentiment  precision: 0.3427
+		Sentiment  recall: 0.3230
+		Sentiment  F: 0.3326
+
+
+	ITER = 1, only trans recalc
+		#Entity in gold data: 226
+		#Entity in prediction: 192
+
+		#Correct Entity : 116
+		Entity  precision: 0.6042
+		Entity  recall: 0.5133
+		Entity  F: 0.5550
+
+		#Correct Sentiment : 69
+		Sentiment  precision: 0.3594
+		Sentiment  recall: 0.3053
+		Sentiment  F: 0.3301
+	
+	ITER = 10, only trans recalc
+		#Entity in gold data: 226
+		#Entity in prediction: 217
+
+		#Correct Entity : 129
+		Entity  precision: 0.5945
+		Entity  recall: 0.5708
+		Entity  F: 0.5824
+
+		#Correct Sentiment : 76
+		Sentiment  precision: 0.3502
+		Sentiment  recall: 0.3363
+		Sentiment  F: 0.3431
+		
+TODO modify trans without modifying tagCount (via some mysterious weight)
