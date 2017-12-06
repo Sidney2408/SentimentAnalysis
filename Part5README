@@ -1,0 +1,25 @@
+Part 5 trains the model with multiple iterations on a perceptron training algorithm. It uses the Viterbi algorithm to train the weights, and then uses the Max-Marginal algorithm to predict data tags on the test file
+
+To execute part5, simply run the Part5.py file (python3.4)
+
+In the Part5.py file, there are several important configurations you may need to change in order to run it correctly.
+
+The constants are:
+	TEST=True	
+	fileDir = "FR"
+	NUMOFITER = 10
+	TRAIN = False
+	
+	
+TEST is a boolean to specify if we are making predictions on either the test.in file or the dev.in file. If True, we will read test.in and write our predictions to test.p5.out. If False, we read dev.in and write to dev.p5.out
+
+fileDir specifies which language folder to use. Choose between EN and FR
+	
+NUMOFITER specifies the number of times to run the perceptron training algorithm. 3 is fine, 10 takes a while to train one model (20 minute on Windows 10 Pro and i5-3570k, 16GB ram)
+
+TRAIN specifies whether to train the model or simply load the pre-trained model from a pickle file. You do not need to retrain the model if you are switching between test.in and dev.in. The code will look in the respective fileDir for the pre-trained model.
+
+
+Please refer to the report on how Part5, and the perceptron training, works.
+
+The output file is in ./<fileDir>/test.p5.out (or dev.p5.out)
