@@ -127,7 +127,7 @@ Part 5:
 	We adapted a few things from this reference slide, as we are making use of the existing code. Below are some of the modifications.
 	
 	Firstly, our gold standard was the tagged training data, and the respective training data is the untagged version of the training data. It is with these data that we iterate through multiple times in order to train the perceptrons
-	The perceptrons and their weights are also implemented in another way. We choose to modify the tagCount for the full algorithm defined in parts 1 to 4, because given the implementation of the transmission and emission parameters calculation in step 2-3, it is easier to recalculate with a new tagCount instead of transmission and emission weight. We will elaborate further below.
+	The perceptrons and their weights are also implemented in another way. We choose to modify (subtract) the tagCount for the full algorithm defined in parts 1 to 4, because given the implementation of the transmission and emission parameters calculation in step 2-3, it is easier to recalculate with a new tagCount instead of transmission and emission weight. We will elaborate further below.
 	
 	At the end of the perceptron training, we have a final transmission and emission parameter, which we use in the maxMarginal method on the dev.in data set, in order to generate the dev.p5.out data.
 	
@@ -143,7 +143,7 @@ Part 5:
 				For all non-zero feature-counters, we deduct from tagCount their respective count.
 				We then regenerate the transmission and emission parameters from the new tagCounts, to apply them to the next viterbi algorithm for the next sentence.
 	
-	A problem with the implementation is that we modify the tagCount directly, instead of choosing and modifying weights to the perceptron. Why this methods still works is because it has the effect of increasing the probability of each tag during the calculation of the emission and transmission parameters, akin to how weights will increase them as well. However, we are also aware that modifying the tagCount might create a non-equal change in probability, which might result in the total probability of cases to be not equals to 1 for some states. In practice, this is not significant due to the large amount of states present in the training dataset.
+	A problem with the implementation is that we subtract the feature counts directly from the tagCount, instead of choosing and modifying weights to the perceptron. Why this methods still works is because when the transmission and emission paramters are recalculated, it has the effect of increasing the probability of each tag, akin to how weights will increase them as well. However, we are also aware that modifying the tagCount might create a non-equal change in probability, which might result in the total probability of cases to be not equals to 1 for some states. In practice, this is not significant due to the large amount of states present in the training dataset.
 	
 	From the results (shown above), we can see a marked improvement in both precision and recall for both Identity and Sentiment predictions. As the total number of iteration increases, we can see a gradual increase in precision and recall, which appears to converge. From the data, we see an average of 5% improvement for Entity prediction, and 4% improvement in Sentiment prediction, for both the EN and FR version.
 	
