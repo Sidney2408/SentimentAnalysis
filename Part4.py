@@ -10,9 +10,10 @@ transition = transitionParameters[prev_tag]["parameter"][current_tag]
 """
 from collections import deque
 import math 
-from math import inf
+from Part2 import load_obj,save_obj
+from Part3 import aUV, bVxi
 
-def main(sentences, fileDir, tP, eP):
+def maxMarginalDecoding(sentences, fileDir, tP, eP):
     fileString = ""
     for sentence in sentences:
         fileString = fileString+maxMarginal(sentence,tP,eP)+"\n"
@@ -32,7 +33,6 @@ def maxMarginal(sentence,tP,eP):
         if (index == 0):
             #Base case
             for current_tag in alpha[index]:
-                #print(current_tag)
                 transition = aUV(tP,firstTag,current_tag)
                 alpha[0][current_tag] = transition
         else:
@@ -49,10 +49,7 @@ def maxMarginal(sentence,tP,eP):
                     if(runningTotal < 1e-300 and runningTotal!= 0):
                         print("Danger! {}".format(runningTotal))
 
-                alpha[index][current_tag] = runningTotal
-                    
-
-        
+                alpha[index][current_tag] = runningTotal      
     beta = deque()
     lastTag = "STOP"
     
@@ -68,10 +65,8 @@ def maxMarginal(sentence,tP,eP):
             for current_tag in beta[index]:
                 transition = aUV(tP,current_tag,lastTag)
                 emission = bVxi(eP,observation,current_tag)
-                #print("word: {} tag:{} trans: {}, emiss: {}".format(observation, current_tag, transition,emission))
                 beta_u_n = transition*emission
                 beta[index][current_tag] = beta_u_n
-                #print(beta[0])                    
         else:
             for current_tag in beta[index]:
                 runningTotal = 0
@@ -85,10 +80,6 @@ def maxMarginal(sentence,tP,eP):
                         print("Danger! {}".format(runningTotal))
                         
                 beta[index][current_tag] = runningTotal
-
- 
-        
-        
     obs_statePair = ""   
     for index in range(0,n):
         word = sentence[index]
@@ -99,35 +90,20 @@ def maxMarginal(sentence,tP,eP):
         for sentiment in tagSets:
             alpha_x_beta[sentiment] = dict_alpha[sentiment]*dict_beta[sentiment]
         tag = max(alpha_x_beta, key=alpha_x_beta.get)
-        #print("word: {}, tag: {}".format(word,tag))
         obs_statePair = obs_statePair +word +" "+tag +"\n"
-    return obs_statePair
-     
-def aUV(transitionParameters,prev_tag,tag):
-    dic = transitionParameters[prev_tag]["parameters"]
-    return dic.get(tag,0)
-     
-def bVxi(emissionParameters,observation,tag):
-    dic= emissionParameters[observation]["parameters"]
-    return dic.get(tag,0)
+    return obs_statePair    
 
-import pickle 
-def save_obj(obj, fileDir, fileName ):
-    with open('{0}\\variables\{1}.pkl'.format(fileDir,fileName),'wb') as f:
-        pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
+def main():
+    languages = ["EN", "FR"]
+    for i in languages:
+        fileDir = i
+        transitionParameters = load_obj(fileDir, "transitionParameters")
+        emissionParameters = load_obj(fileDir,"emissionParameters")
+        sentences = load_obj(fileDir,"sentences")
+        maxMarginalDecoding(sentences,fileDir,transitionParameters,emissionParameters)
         
-def load_obj(fileDir, fileName):
-    with open('{0}\\variables\{1}.pkl'.format(fileDir,fileName), 'rb') as f:
-        return pickle.load(f)
+if __name__ == "__main__":
+    main()
 
-fileDir = "FR" #Specify the training sets to be used
-transitionParameters = load_obj(fileDir, "transitionParameters")
-#To access the transmission parameters, use transition[prev_tag][next_tag] 
-emissionParameters = load_obj(fileDir,"emissionParameters")
-#To access the emission parameters, use emission[word][tag]
-sentences = load_obj(fileDir,"sentences")
-main(sentences,fileDir,transitionParameters,emissionParameters)
-
-print(maxMarginal(sentences[3],transitionParameters,emissionParameters))
 
 

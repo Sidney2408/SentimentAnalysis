@@ -194,13 +194,10 @@ def save_obj(obj, fileDir, fileName ):
     with open('{0}\\variables\{1}.pkl'.format(fileDir,fileName),'wb') as f:
         pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
         
-
 def load_obj(fileDir, fileName):
     with open('{0}\\variables\{1}.pkl'.format(fileDir,fileName), 'rb') as f:
         return pickle.load(f)
     
-
-
 def detectAnomalies(fileDir):
     with open('{0}\modifiedTrain.txt'.format(fileDir), 'r',encoding='utf-8') as modTrainSet:
         trainSetString = modTrainSet.read()
@@ -225,19 +222,18 @@ def detectAnomalies(fileDir):
 
     
 
-
-    
-
-fileDir = "SG"
-tagCount = preprocess(fileDir,3)
-save_obj(tagCount, fileDir, "tagCount")
-emissionParameters = computeEmissions(fileDir,tagCount)
-save_obj(emissionParameters, fileDir, "emissionParameters")
-sentimentAnalysis = simpleSentimentAnalysis(fileDir, emissionParameters)
-transitionParameters = computeTransitions(fileDir,tagCount)
-save_obj(transitionParameters,fileDir,"transitionParameters")
-
- 
+def main():
+    languages = ["EN", "FR","SG","CN"]
+    for i in languages:
+        fileDir = i
+        tagCount = preprocess(fileDir,3)
+        save_obj(tagCount, fileDir, "tagCount")
+        emissionParameters = computeEmissions(fileDir,tagCount)
+        save_obj(emissionParameters, fileDir, "emissionParameters")
+        sentimentAnalysis = simpleSentimentAnalysis(fileDir, emissionParameters)
+        
+if __name__ == "__main__":
+    main()
   
     
         

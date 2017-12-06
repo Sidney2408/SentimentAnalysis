@@ -9,27 +9,13 @@ transition = transitionParameters[prev_tag]["parameter"][current_tag]
 
 """
 from collections import deque
+from Part2 import *
 import sys
 import math 
 from math import inf
 
 sentimentSets = ["START","STOP","O","B-positive","I-positive","B-neutral","I-neutral","B-negative","I-negative"]
 
-import pickle 
-def save_obj(obj, fileDir, fileName ):
-    with open('{0}\\variables\{1}.pkl'.format(fileDir,fileName),'wb') as f:
-        pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
-        
-def load_obj(fileDir, fileName):
-    with open('{0}\\variables\{1}.pkl'.format(fileDir,fileName), 'rb') as f:
-        return pickle.load(f)
-
-fileDir = "SG"
-sentences = load_obj(fileDir,"sentences")
-emissionParameters = load_obj(fileDir,"emissionParameters")
-transitionParameters = load_obj(fileDir,"transitionParameters")
-
-#TODO: Compute the sentences of the test-Set
 def computeSentences(fileDir):
     with open('{0}\modifiedTest.txt'.format(fileDir), 'r',encoding='utf-8') as modTestSet:
         testSetString = modTestSet.read()
@@ -44,7 +30,7 @@ def computeSentences(fileDir):
             #End of sentence reached
             sentences.append(sentence)
             sentence = []
-    save_obj(sentences,fileDir,"sentences")
+    return sentences
 
 def computeTransitions(fileDir,tagCount):
     with open('{0}\modifiedTrain.txt'.format(fileDir), 'r',encoding='utf-8') as modTrainSet:
@@ -129,7 +115,7 @@ def viterbiAlgorithm(sentence_array, transitionParameters, emissionParameters):
         markovTable.append(tagSets)
         observation = sentence_array[i]
         if i == 0:
-            print("Base case")
+            #print("Base case")
             for tag in markovTable[i]:
                 trans = aUV(tP,prev_tag,tag)
                 emit = bVxi(eP,observation,tag)
@@ -160,10 +146,7 @@ def viterbiAlgorithm(sentence_array, transitionParameters, emissionParameters):
                 #Set to None if no values available 
             
                 markovTable[i][tag] = max(values)
-                    
 
-                
-    #print("terminal case")
     lastTag = "STOP"
     values = [] 
     observation = sentence_array[-1]           
@@ -183,7 +166,7 @@ def viterbiAlgorithm(sentence_array, transitionParameters, emissionParameters):
     terminalValue = max(values)
     
     #Backtracking
-    print("Commencing back trekking with terminal value: {}".format(terminalValue))
+    #print("Commencing back trekking with terminal value: {}".format(terminalValue))
     from collections import deque
     sequenceList = deque()
     latestTag = "STOP"
@@ -214,26 +197,19 @@ def viterbiAlgorithm(sentence_array, transitionParameters, emissionParameters):
         obs_statePair = obs_statePair+"{0} {1}\n".format(word, tag)    
     return obs_statePair
 
-            
-            
-                
-
-
-trainingSets = ["EN","CN","FR","SG"]
-
-"""
-for i in trainingSets:
-    fileDir = i
-    tagCount = load_obj(fileDir,"tagCount")
-    #transitionParameters = computeTransitions(fileDir,tagCount)
-    #save_obj(transitionParameters,fileDir,"transitionParameters")
-    computeSentences(fileDir)
-"""
-
-fileDir = "FR"
-transitionParameters = load_obj(fileDir, "transitionParameters")   
-emissionParameters = load_obj(fileDir,"emissionParameters")     
-sentences = load_obj(fileDir,"sentences")
-decodeAllSentences(sentences,fileDir,transitionParameters,emissionParameters)
+def main():
+    languages = ["EN", "FR","SG","CN"]
+    for i in languages:
+        fileDir = i
+        tagCount = load_obj(fileDir,"tagCount")
+        transitionParameters = computeTransitions(fileDir,tagCount)
+        save_obj(transitionParameters,fileDir,"transitionParameters")
+        emissionParameters = load_obj(fileDir,"emissionParameters")
+        sentences = computeSentences(fileDir)
+        save_obj(sentences,fileDir,"sentences")
+        decodeAllSentences(sentences,fileDir,transitionParameters,emissionParameters)
+        
+if __name__ == "__main__":
+    main()
 
     
